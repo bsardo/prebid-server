@@ -51,6 +51,28 @@ type PrivacyLabels struct {
 	LMTEnforced    bool
 }
 
+type StoredRequestLabels struct {
+	StoredRequestType StoredRequestType
+	PullType          PeriodicTaskPullType
+}
+
+// StoredRequestType : The type of stored request
+type StoredRequestType string
+
+const (
+	StoredRequestTypeAmp      StoredRequestType = "Amp"
+	StoredRequestTypeAuction  StoredRequestType = "Auction"
+	StoredRequestTypeCategory StoredRequestType = "Category"
+	StoredRequestTypeVideo    StoredRequestType = "Video"
+)
+
+type PeriodicTaskPullType string
+
+const (
+	PeriodicTaskInitial PeriodicTaskPullType = "Full"
+	PeriodicTaskUpdate  PeriodicTaskPullType = "Partial"
+)
+
 // Label typecasting. Se below the type definitions for possible values
 
 // DemandSource : Demand source enumeration
@@ -314,6 +336,7 @@ type MetricsEngine interface {
 	RecordUserIDSet(userLabels UserLabels) // Function should verify bidder values
 	RecordStoredReqCacheResult(cacheResult CacheResult, inc int)
 	RecordStoredImpCacheResult(cacheResult CacheResult, inc int)
+	RecordStoredRequestLoadTime(labels StoredRequestLabels, length time.Duration)
 	RecordPrebidCacheRequestTime(success bool, length time.Duration)
 	RecordRequestQueueTime(success bool, requestType RequestType, length time.Duration)
 	RecordTimeoutNotice(sucess bool)

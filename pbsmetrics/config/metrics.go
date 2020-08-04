@@ -104,6 +104,12 @@ func (me *MultiMetricsEngine) RecordRequestTime(labels pbsmetrics.Labels, length
 	}
 }
 
+func (me *MultiMetricsEngine) RecordStoredRequestLoadTime(labels pbsmetrics.StoredRequestLabels, length time.Duration) {
+	for _, thisME := range *me {
+		thisME.RecordStoredRequestLoadTime(labels, length)
+	}
+}
+
 // RecordAdapterPanic across all engines
 func (me *MultiMetricsEngine) RecordAdapterPanic(labels pbsmetrics.AdapterLabels) {
 	for _, thisME := range *me {

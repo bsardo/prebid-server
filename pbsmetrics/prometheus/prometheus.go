@@ -28,6 +28,7 @@ type Metrics struct {
 	requestsWithoutCookie        *prometheus.CounterVec
 	storedImpressionsCacheResult *prometheus.CounterVec
 	storedRequestCacheResult     *prometheus.CounterVec
+	storedRequestLoadTimer       *prometheus.HistogramVec
 	timeoutNotifications         *prometheus.CounterVec
 	dnsLookupTimer               prometheus.Histogram
 	privacyCCPA                  *prometheus.CounterVec
@@ -100,6 +101,11 @@ const (
 const (
 	sourceLabel   = "source"
 	sourceRequest = "request"
+)
+
+const (
+	storedRequestTypeLabel     = "stored_request_type"
+	storedRequestPullTypeLabel = "pull_type"
 )
 
 // NewMetrics initializes a new Prometheus metrics instance with preloaded label values.
@@ -385,6 +391,13 @@ func (m *Metrics) RecordRequestTime(labels pbsmetrics.Labels, length time.Durati
 			requestTypeLabel: string(labels.RType),
 		}).Observe(length.Seconds())
 	}
+}
+
+func (m *Metrics) RecordStoredRequestLoadTime(labels pbsmetrics.StoredRequestLabels, length time.Duration) {
+	m.storedRequestLoadTimer.With(prometheus.Labels{
+		storedRequestTypeLabel:     string(labels.StoredRequestType),
+		storedRequestPullTypeLabel: string(labels.PullType),
+	}).Observe(length.Seconds())
 }
 
 func (m *Metrics) RecordAdapterRequest(labels pbsmetrics.AdapterLabels) {

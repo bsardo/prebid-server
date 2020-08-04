@@ -51,6 +51,9 @@ func NewEndpoint(ex exchange.Exchange, validator openrtb_ext.BidderParamValidato
 		return nil, errors.New("NewEndpoint requires non-nil arguments.")
 	}
 
+	glog.Info("GOT HERE! THIS IS INFO")
+	glog.Error("GOT HERE! THIS IS ERROR")
+
 	defRequest := defReqJSON != nil && len(defReqJSON) > 0
 
 	ipValidator := iputil.PublicNetworkIPValidator{

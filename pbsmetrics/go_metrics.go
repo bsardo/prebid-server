@@ -27,6 +27,7 @@ type Metrics struct {
 	RequestsQueueTimer             map[RequestType]map[bool]metrics.Timer
 	PrebidCacheRequestTimerSuccess metrics.Timer
 	PrebidCacheRequestTimerError   metrics.Timer
+	StoredReqLoadTimer             metrics.Timer
 	StoredReqCacheMeter            map[CacheResult]metrics.Meter
 	StoredImpCacheMeter            map[CacheResult]metrics.Meter
 	DNSLookupTimer                 metrics.Timer
@@ -131,6 +132,7 @@ func NewBlankMetrics(registry metrics.Registry, exchanges []openrtb_ext.BidderNa
 		RequestsQueueTimer:             make(map[RequestType]map[bool]metrics.Timer),
 		PrebidCacheRequestTimerSuccess: blankTimer,
 		PrebidCacheRequestTimerError:   blankTimer,
+		StoredReqLoadTimer:             blankTimer,
 		StoredReqCacheMeter:            make(map[CacheResult]metrics.Meter),
 		StoredImpCacheMeter:            make(map[CacheResult]metrics.Meter),
 		AmpNoCookieMeter:               blankMeter,
@@ -442,6 +444,11 @@ func (me *Metrics) RecordRequestTime(labels Labels, length time.Duration) {
 	if labels.RequestStatus == RequestStatusOK {
 		me.RequestTimer.Update(length)
 	}
+}
+
+func (me *Metrics) RecordStoredRequestLoadTime(labels StoredRequestLabels, length time.Duration) {
+	me.StoredReqLoadTimer.Update(length)
+	//TODO(bfs): check status and record success time separate from failure time
 }
 
 // RecordAdapterPanic implements a part of the MetricsEngine interface

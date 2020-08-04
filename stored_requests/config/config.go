@@ -63,7 +63,7 @@ func CreateStoredRequests(srType postgresEvents.StoredRequestType, cfg *config.S
 		}
 	}
 
-	eventProducers := newEventProducers(srType, cfg, client, dbc.db, router)
+	eventProducers := newEventProducers(srType, cfg, client, dbc.db, metricsEngine, router)
 	fetcher = newFetcher(srType, cfg, client, dbc.db)
 
 	var shutdown1 func()
@@ -225,7 +225,7 @@ func newCache(cfg *config.StoredRequestsSlim) stored_requests.Cache {
 	return memory.NewCache(&cfg.InMemoryCache)
 }
 
-func newEventProducers(srType postgresEvents.StoredRequestType, cfg *config.StoredRequestsSlim, client *http.Client, db *sql.DB, router *httprouter.Router) (eventProducers []events.EventProducer) {
+func newEventProducers(srType postgresEvents.StoredRequestType, cfg *config.StoredRequestsSlim, client *http.Client, db *sql.DB, metricsEngine pbsmetrics.MetricsEngine, router *httprouter.Router) (eventProducers []events.EventProducer) {
 	if cfg.CacheEvents.Enabled {
 		eventProducers = append(eventProducers, newEventsAPI(router, cfg.CacheEvents.Endpoint))
 	}
