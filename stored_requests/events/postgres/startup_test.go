@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSuccessfulFetch(t *testing.T) {
@@ -21,8 +22,10 @@ func TestSuccessfulFetch(t *testing.T) {
 
 	mock.ExpectQuery(initialQueryRegex()).WillReturnRows(mockRows)
 
-	evs := LoadAll(context.Background(), db, initialQuery)
+	evs, err := LoadAll("Auction", context.Background(), db, initialQuery)
 	save := <-evs.Saves()
+	assert.Nil(t, err)
+
 	assertMapLength(t, 1, save.Requests)
 	assertMapValue(t, save.Requests, "stored-req-id", "true")
 
@@ -37,8 +40,9 @@ func TestQueryError(t *testing.T) {
 	db, mock := newMock(t)
 	mock.ExpectQuery(initialQueryRegex()).WillReturnError(errors.New("Query failed."))
 
-	evs := LoadAll(context.Background(), db, initialQuery)
+	evs, err := LoadAll("Auction", context.Background(), db, initialQuery)
 	save := <-evs.Saves()
+	assert.NotNil(t, err)
 	assertMapLength(t, 0, save.Requests)
 	assertMapLength(t, 0, save.Imps)
 	assertExpectationsMet(t, mock)
@@ -52,8 +56,9 @@ func TestRowError(t *testing.T) {
 		RowError(1, errors.New("Some row error."))
 	mock.ExpectQuery(initialQueryRegex()).WillReturnRows(mockRows)
 
-	evs := LoadAll(context.Background(), db, initialQuery)
+	evs, err := LoadAll("Auction", context.Background(), db, initialQuery)
 	save := <-evs.Saves()
+	assert.NotNil(t, err)
 	assertMapLength(t, 0, save.Requests)
 	assertMapLength(t, 0, save.Imps)
 	assertExpectationsMet(t, mock)
@@ -67,8 +72,9 @@ func TestRowCloseError(t *testing.T) {
 		CloseError(errors.New("Failed to close rows."))
 	mock.ExpectQuery(initialQueryRegex()).WillReturnRows(mockRows)
 
-	evs := LoadAll(context.Background(), db, initialQuery)
+	evs, err := LoadAll("Auction", context.Background(), db, initialQuery)
 	save := <-evs.Saves()
+	assert.Nil(t, err)
 	assertMapLength(t, 1, save.Requests)
 	assertMapLength(t, 1, save.Imps)
 	assertExpectationsMet(t, mock)

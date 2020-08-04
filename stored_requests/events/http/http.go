@@ -62,7 +62,10 @@ func NewHTTPEvents(client *httpCore.Client, endpoint string, ctxProducer func() 
 		invalidations: make(chan events.Invalidation, 1),
 	}
 	glog.Infof("Loading HTTP cache from GET %s", endpoint)
-	e.fetchAll()
+
+	if err := e.fetchAll(); err != nil {
+		e.lastUpdate = time.Time{}
+	}
 
 	go e.refresh(time.Tick(refreshRate))
 	return e
@@ -77,7 +80,7 @@ type HTTPEvents struct {
 	saves         chan events.Save
 }
 
-func (e *HTTPEvents) fetchAll() {
+func (e *HTTPEvents) fetchAll() error {
 	ctx, cancel := e.ctxProducer()
 	defer cancel()
 	resp, err := ctxhttp.Get(ctx, e.client, e.Endpoint)
@@ -88,6 +91,7 @@ func (e *HTTPEvents) fetchAll() {
 			Imps:     respObj.StoredImps,
 		}
 	}
+	return err
 }
 
 func (e *HTTPEvents) refresh(ticker <-chan time.Time) {
@@ -109,6 +113,7 @@ func (e *HTTPEvents) refresh(ticker <-chan time.Time) {
 			urlQuery := endpointUrl.Query()
 
 			// See the last-modified query param
+			// TODO(bfs):  if initial load failed, we shouldn't include the last-modified query param
 			urlQuery.Set("last-modified", e.lastUpdate.Format(time.RFC3339))
 
 			// Rebuild

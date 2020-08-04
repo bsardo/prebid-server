@@ -41,7 +41,7 @@ type dbConnection struct {
 //
 // As a side-effect, it will add some endpoints to the router if the config calls for it.
 // In the future we should look for ways to simplify this so that it's not doing two things.
-func CreateStoredRequests(cfg *config.StoredRequestsSlim, metricsEngine pbsmetrics.MetricsEngine, client *http.Client, router *httprouter.Router, dbc *dbConnection) (fetcher stored_requests.AllFetcher, shutdown func()) {
+func CreateStoredRequests(srType postgresEvents.StoredRequestType, cfg *config.StoredRequestsSlim, metricsEngine pbsmetrics.MetricsEngine, client *http.Client, router *httprouter.Router, dbc *dbConnection) (fetcher stored_requests.AllFetcher, shutdown func()) {
 	// Create database connection if given options for one
 	if cfg.Postgres.ConnectionInfo.Database != "" {
 		conn := cfg.Postgres.ConnectionInfo.ConnString()
@@ -63,8 +63,8 @@ func CreateStoredRequests(cfg *config.StoredRequestsSlim, metricsEngine pbsmetri
 		}
 	}
 
-	eventProducers := newEventProducers(cfg, client, dbc.db, router)
-	fetcher = newFetcher(cfg, client, dbc.db)
+	eventProducers := newEventProducers(srType, cfg, client, dbc.db, router)
+	fetcher = newFetcher(srType, cfg, client, dbc.db)
 
 	var shutdown1 func()
 
@@ -116,10 +116,10 @@ func NewStoredRequests(cfg *config.Configuration, metricsEngine pbsmetrics.Metri
 
 	var dbc dbConnection
 
-	fetcher1, shutdown1 := CreateStoredRequests(&slimAuction, metricsEngine, client, router, &dbc)
-	fetcher2, shutdown2 := CreateStoredRequests(&slimAmp, metricsEngine, client, router, &dbc)
-	fetcher3, shutdown3 := CreateStoredRequests(&cfg.CategoryMapping, metricsEngine, client, router, &dbc)
-	fetcher4, shutdown4 := CreateStoredRequests(&cfg.StoredVideo, metricsEngine, client, router, &dbc)
+	fetcher1, shutdown1 := CreateStoredRequests(postgresEvents.Auction, &slimAuction, metricsEngine, client, router, &dbc)
+	fetcher2, shutdown2 := CreateStoredRequests(postgresEvents.Amp, &slimAmp, metricsEngine, client, router, &dbc)
+	fetcher3, shutdown3 := CreateStoredRequests(postgresEvents.Category, &cfg.CategoryMapping, metricsEngine, client, router, &dbc)
+	fetcher4, shutdown4 := CreateStoredRequests(postgresEvents.Video, &cfg.StoredVideo, metricsEngine, client, router, &dbc)
 
 	db = dbc.db
 
@@ -196,11 +196,11 @@ func addListeners(cache stored_requests.Cache, eventProducers []events.EventProd
 	}
 }
 
-func newFetcher(cfg *config.StoredRequestsSlim, client *http.Client, db *sql.DB) (fetcher stored_requests.AllFetcher) {
+func newFetcher(srType postgresEvents.StoredRequestType, cfg *config.StoredRequestsSlim, client *http.Client, db *sql.DB) (fetcher stored_requests.AllFetcher) {
 	idList := make(stored_requests.MultiFetcher, 0, 3)
 
 	if cfg.Files.Enabled {
-		fFetcher := newFilesystem(cfg.Files.Path)
+		fFetcher := newFilesystem(srType, cfg.Files.Path)
 		idList = append(idList, fFetcher)
 	}
 	if cfg.Postgres.FetcherQueries.QueryTemplate != "" {
@@ -225,7 +225,7 @@ func newCache(cfg *config.StoredRequestsSlim) stored_requests.Cache {
 	return memory.NewCache(&cfg.InMemoryCache)
 }
 
-func newEventProducers(cfg *config.StoredRequestsSlim, client *http.Client, db *sql.DB, router *httprouter.Router) (eventProducers []events.EventProducer) {
+func newEventProducers(srType postgresEvents.StoredRequestType, cfg *config.StoredRequestsSlim, client *http.Client, db *sql.DB, router *httprouter.Router) (eventProducers []events.EventProducer) {
 	if cfg.CacheEvents.Enabled {
 		eventProducers = append(eventProducers, newEventsAPI(router, cfg.CacheEvents.Endpoint))
 	}
@@ -233,26 +233,31 @@ func newEventProducers(cfg *config.StoredRequestsSlim, client *http.Client, db *
 		eventProducers = append(eventProducers, newHttpEvents(client, cfg.HTTPEvents.TimeoutDuration(), cfg.HTTPEvents.RefreshRateDuration(), cfg.HTTPEvents.Endpoint))
 	}
 	if cfg.Postgres.CacheInitialization.Query != "" {
-		// Make sure we don't miss any updates in between the initial fetch and the "update" polling.
+		// Make sure we don't miss any updates in between the initial fetch and the "update" polling assuming the initial load is successful
 		updateStartTime := time.Now()
 		timeout := time.Duration(cfg.Postgres.CacheInitialization.Timeout) * time.Millisecond
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
-		eventProducers = append(eventProducers, postgresEvents.LoadAll(ctx, db, cfg.Postgres.CacheInitialization.Query))
+		eventProducer, err := postgresEvents.LoadAll(srType, ctx, db, cfg.Postgres.CacheInitialization.Query)
+		if err != nil {
+			// if the initial load failed, use zero time as the update start time
+			updateStartTime = time.Time{}
+		}
+		eventProducers = append(eventProducers, eventProducer)
 		cancel()
 
 		if cfg.Postgres.PollUpdates.Query != "" {
-			eventProducers = append(eventProducers, newPostgresPolling(cfg.Postgres.PollUpdates, db, updateStartTime))
+			eventProducers = append(eventProducers, newPostgresPolling(srType, cfg.Postgres.PollUpdates, cfg.Postgres.CacheInitialization, db, updateStartTime))
 		}
 	}
 	return
 }
 
-func newPostgresPolling(cfg config.PostgresUpdatePollingSlim, db *sql.DB, startTime time.Time) events.EventProducer {
+func newPostgresPolling(srType postgresEvents.StoredRequestType, cfg config.PostgresUpdatePollingSlim, cfg2 config.PostgresCacheInitializerSlim, db *sql.DB, startTime time.Time) events.EventProducer {
 	timeout := time.Duration(cfg.Timeout) * time.Millisecond
 	ctxProducer := func() (ctx context.Context, canceller func()) {
 		return context.WithTimeout(context.Background(), timeout)
 	}
-	return postgresEvents.PollForUpdates(ctxProducer, db, cfg.Query, startTime, time.Duration(cfg.RefreshRate)*time.Second)
+	return postgresEvents.PollForUpdates(srType, ctxProducer, db, cfg2.Query, cfg.Query, startTime, time.Duration(cfg.RefreshRate)*time.Second)
 }
 
 func newEventsAPI(router *httprouter.Router, endpoint string) events.EventProducer {
@@ -269,8 +274,8 @@ func newHttpEvents(client *http.Client, timeout time.Duration, refreshRate time.
 	return httpEvents.NewHTTPEvents(client, endpoint, ctxProducer, refreshRate)
 }
 
-func newFilesystem(configPath string) stored_requests.AllFetcher {
-	glog.Infof("Loading Stored Requests from filesystem at path %s", configPath)
+func newFilesystem(srType postgresEvents.StoredRequestType, configPath string) stored_requests.AllFetcher {
+	glog.Infof("Loading %s Stored Requests from filesystem at path %s", srType, configPath)
 	fetcher, err := file_fetcher.NewFileFetcher(configPath)
 	if err != nil {
 		glog.Fatalf("Failed to create a FileFetcher: %v", err)

@@ -27,7 +27,7 @@ func TestSuccessfulUpdates(t *testing.T) {
 
 	mock.ExpectQuery(initialQueryRegex()).WillReturnRows(mockRows)
 
-	evs := PollForUpdates(nil, db, updateQuery, updateStart, time.Duration(-1))
+	evs := PollForUpdates("Auction", nil, db, initialQuery, updateQuery, updateStart, time.Duration(-1))
 	timeChan := make(chan time.Time)
 	go evs.refresh(timeChan)
 	timeChan <- time.Now()

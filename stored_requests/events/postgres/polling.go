@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	// config "github.com/prebid/prebid-server/stored_requests/config"
 	"github.com/prebid/prebid-server/stored_requests/events"
 )
 
@@ -24,7 +25,7 @@ import (
 //
 // If data is empty or the JSON "null", then the ID will be invalidated (e.g. a deletion).
 // If data is not empty, it should be the Stored Request or Stored Imp data associated with the given ID.
-func PollForUpdates(ctxProducer func() (ctx context.Context, canceller func()), db *sql.DB, query string, startUpdatesFrom time.Time, refreshRate time.Duration) (eventProducer *PostgresPoller) {
+func PollForUpdates(srType StoredRequestType, ctxProducer func() (ctx context.Context, canceller func()), db *sql.DB, createQuery string, updateQuery string, startUpdatesFrom time.Time, refreshRate time.Duration) (eventProducer *PostgresPoller) {
 	// If we're not given a function to produce Contexts, use the Background one.
 	if ctxProducer == nil {
 		ctxProducer = func() (ctx context.Context, canceller func()) {
@@ -32,19 +33,21 @@ func PollForUpdates(ctxProducer func() (ctx context.Context, canceller func()), 
 		}
 	}
 	if db == nil {
-		glog.Fatal("The Stored Request Postgres Poller needs a database connection to work.")
+		glog.Fatalf("The %s Stored Request Postgres Poller needs a database connection to work.", srType)
 	}
 
 	e := &PostgresPoller{
+		srType:        srType,
 		db:            db,
 		ctxProducer:   ctxProducer,
-		updateQuery:   query,
+		createQuery:   createQuery,
+		updateQuery:   updateQuery,
 		lastUpdate:    startUpdatesFrom,
 		invalidations: make(chan events.Invalidation, 1),
 		saves:         make(chan events.Save, 1),
 	}
 
-	glog.Infof("Stored Requests will be refreshed from Postgres every %f seconds with: %s", refreshRate.Seconds(), query)
+	glog.Infof("%s Stored Requests will be refreshed from Postgres every %f seconds with: %s", e.srType, refreshRate.Seconds(), updateQuery)
 
 	if refreshRate > 0 {
 		go e.refresh(time.Tick(refreshRate))
@@ -55,8 +58,10 @@ func PollForUpdates(ctxProducer func() (ctx context.Context, canceller func()), 
 }
 
 type PostgresPoller struct {
+	srType        StoredRequestType
 	db            *sql.DB
 	ctxProducer   func() (ctx context.Context, canceller func())
+	createQuery   string
 	updateQuery   string
 	lastUpdate    time.Time
 	invalidations chan events.Invalidation
@@ -67,28 +72,52 @@ func (e *PostgresPoller) refresh(ticker <-chan time.Time) {
 	for {
 		select {
 		case thisTime := <-ticker:
-			// Make sure to log the time now, *before* running the query,
-			// so that next tick's query won't miss any new updates which were made at the same time.
-			// This may duplicate some updates, but safety > efficiency.
-			thisTimeInUTC := thisTime.UTC()
-			ctx, cancel := e.ctxProducer()
-			rows, err := e.db.QueryContext(ctx, e.updateQuery, e.lastUpdate)
-			if err != nil {
-				glog.Warningf("Failed to update Stored Request data: %v", err)
-				cancel()
-				continue
-			}
-			if err := sendEvents(rows, e.saves, e.invalidations); err != nil {
-				glog.Warningf("Failed to update Stored Request data: %v", err)
+			if e.lastUpdate.IsZero() {
+				thisTimeInUTC := thisTime.UTC()
+				ctx2, cancel2 := e.ctxProducer()
+				rows2, err := e.db.QueryContext(ctx2, e.createQuery)
+				if err != nil {
+					glog.Warningf("Failed to fetch %s, Stored Requests from Postgres on startup: %v", e.srType, err)
+					cancel2()
+					continue
+				}
+				if err := sendEvents(rows2, e.saves, nil); err != nil {
+					glog.Warningf("Failed to fetch %s, Stored Requests from Postgres on startup: %v", e.srType, err)
+				} else {
+					e.lastUpdate = thisTimeInUTC
+				}
+				if err := rows2.Close(); err != nil {
+					glog.Warningf("Failed to close DB connection: %v", err)
+				}
+				cancel2()
 			} else {
-				e.lastUpdate = thisTimeInUTC
+				// Make sure to log the time now, *before* running the query,
+				// so that next tick's query won't miss any new updates which were made at the same time.
+				// This may duplicate some updates, but safety > efficiency.
+				thisTimeInUTC := thisTime.UTC()
+				ctx, cancel := e.ctxProducer()
+				rows, err := e.db.QueryContext(ctx, e.updateQuery, e.lastUpdate)
+				if err != nil {
+					glog.Warningf("Failed to update Stored Request data: %v", err)
+					cancel()
+					continue
+				}
+				if err := sendEvents(rows, e.saves, e.invalidations); err != nil {
+					glog.Warningf("Failed to update Stored Request data: %v", err)
+				} else {
+					e.lastUpdate = thisTimeInUTC
+				}
+				if err := rows.Close(); err != nil {
+					glog.Warningf("Failed to close DB connection: %v", err)
+				}
+				cancel()
 			}
-			if err := rows.Close(); err != nil {
-				glog.Warningf("Failed to close DB connection: %v", err)
-			}
-			cancel()
 		}
 	}
+}
+
+func initialLoad() {
+
 }
 
 // sendEvents reads the rows and sends notifications into the channel for any updates.
@@ -149,6 +178,10 @@ func sendEvents(rows *sql.Rows, saves chan<- events.Save, invalidations chan<- e
 	}
 
 	return nil
+}
+
+func (e *PostgresPoller) LastUpdate() time.Time {
+	return e.lastUpdate
 }
 
 func (e *PostgresPoller) Saves() <-chan events.Save {

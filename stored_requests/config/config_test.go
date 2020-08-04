@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"regexp"
 	"testing"
+	"time"
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
 	"github.com/julienschmidt/httprouter"
@@ -16,11 +17,13 @@ import (
 	"github.com/prebid/prebid-server/stored_requests/backends/http_fetcher"
 	"github.com/prebid/prebid-server/stored_requests/events"
 	httpEvents "github.com/prebid/prebid-server/stored_requests/events/http"
+	postgresEvents "github.com/prebid/prebid-server/stored_requests/events/postgres"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewEmptyFetcher(t *testing.T) {
-	fetcher := newFetcher(&config.StoredRequestsSlim{}, nil, nil)
-	ampFetcher := newFetcher(&config.StoredRequestsSlim{}, nil, nil)
+	fetcher := newFetcher("Auction", &config.StoredRequestsSlim{}, nil, nil)
+	ampFetcher := newFetcher("Auction", &config.StoredRequestsSlim{}, nil, nil)
 	if fetcher == nil || ampFetcher == nil {
 		t.Errorf("The fetchers should be non-nil, even with an empty config.")
 	}
@@ -33,12 +36,12 @@ func TestNewEmptyFetcher(t *testing.T) {
 }
 
 func TestNewHTTPFetcher(t *testing.T) {
-	fetcher := newFetcher(&config.StoredRequestsSlim{
+	fetcher := newFetcher("Auction", &config.StoredRequestsSlim{
 		HTTP: config.HTTPFetcherConfigSlim{
 			Endpoint: "stored-requests.prebid.com",
 		},
 	}, nil, nil)
-	ampFetcher := newFetcher(&config.StoredRequestsSlim{
+	ampFetcher := newFetcher("Auction", &config.StoredRequestsSlim{
 		HTTP: config.HTTPFetcherConfigSlim{
 			Endpoint: "stored-requests.prebid.com?type=amp",
 		},
@@ -60,12 +63,12 @@ func TestNewHTTPFetcher(t *testing.T) {
 }
 
 func TestNewHTTPFetcherNoAmp(t *testing.T) {
-	fetcher := newFetcher(&config.StoredRequestsSlim{
+	fetcher := newFetcher("Auction", &config.StoredRequestsSlim{
 		HTTP: config.HTTPFetcherConfigSlim{
 			Endpoint: "stored-requests.prebid.com",
 		},
 	}, nil, nil)
-	ampFetcher := newFetcher(&config.StoredRequestsSlim{
+	ampFetcher := newFetcher("Auction", &config.StoredRequestsSlim{
 		HTTP: config.HTTPFetcherConfigSlim{
 			Endpoint: "",
 		},
@@ -159,7 +162,7 @@ func TestNewHTTPEvents(t *testing.T) {
 			Timeout:     1000,
 		},
 	}
-	evProducers := newEventProducers(cfg, server1.Client(), nil, nil)
+	evProducers := newEventProducers("Auction", cfg, server1.Client(), nil, nil)
 	assertSliceLength(t, evProducers, 1)
 	assertHttpWithURL(t, evProducers[0], server1.URL)
 }
@@ -223,10 +226,11 @@ func TestNewPostgresEventProducers(t *testing.T) {
 	mock.ExpectQuery("^" + regexp.QuoteMeta(cfg.Postgres.CacheInitialization.Query) + "$").WillReturnError(errors.New("Query failed"))
 	mock.ExpectQuery("^" + regexp.QuoteMeta(ampCfg.Postgres.CacheInitialization.Query) + "$").WillReturnError(errors.New("Query failed"))
 
-	evProducers := newEventProducers(cfg, client, db, nil)
+	evProducers := newEventProducers("Auction", cfg, client, db, nil)
 	assertProducerLength(t, evProducers, 2)
+	assert.Equal(t, evProducers[1].(*postgresEvents.PostgresPoller).LastUpdate(), time.Time{})
 
-	ampEvProducers := newEventProducers(ampCfg, client, db, nil)
+	ampEvProducers := newEventProducers("Auction", ampCfg, client, db, nil)
 	assertProducerLength(t, ampEvProducers, 2)
 
 	assertExpectationsMet(t, mock)
