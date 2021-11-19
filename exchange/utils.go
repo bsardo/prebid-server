@@ -309,6 +309,7 @@ func prepareSource(req *openrtb2.BidRequest, bidder string, sChainsByBidder map[
 	// set source
 	if req.Source == nil {
 		req.Source = &openrtb2.Source{}
+		fmt.Println("This is a merge test")
 	}
 	schain := openrtb_ext.ExtRequestPrebidSChain{
 		SChain: *selectedSChain,
@@ -317,6 +318,7 @@ func prepareSource(req *openrtb2.BidRequest, bidder string, sChainsByBidder map[
 	if err == nil {
 		req.Source.Ext = sourceExt
 	}
+
 }
 
 // extractBuyerUIDs parses the values from user.ext.prebid.buyeruids, and then deletes those values from the ext.
