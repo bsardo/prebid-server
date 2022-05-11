@@ -303,9 +303,9 @@ type TCF2 struct {
 // consent to the purpose, not the vendor. The idea is that the publisher trusts this vendor to enforce the
 // appropriate rules on their own. This only comes into play when enforceVendors is true as it lists those vendors that
 // are exempt for vendor enforcement.
-func (t *TCF2) BasicEnforcementVendor(openrtb_ext.BidderName) bool {
-	return false
-}
+// func (t *TCF2) BasicEnforcementVendors(openrtb_ext.BidderName) bool {
+// 	return false
+// }
 
 // IntegrationEnabled checks if a given integration type is enabled. All integration types are considered either
 // enabled or disabled based on the Enabled flag.
@@ -339,17 +339,37 @@ func (t *TCF2) PurposeEnforcingVendors(purpose consentconstants.Purpose) (value 
 	return t.PurposeConfigs[purpose].EnforceVendors
 }
 
+// VendorExceptions is TODO
+// type VendorExceptions map[openrtb_ext.BidderName]struct{}
+
+// // IsException checks if the specified bidder is a vendor exception
+// func (ve VendorExceptions) IsException(bidder openrtb_ext.BidderName) bool {
+// 	if _, ok := ve[bidder]; ok {
+// 		return true
+// 	}
+// 	return false
+// }
+
 // PurposeVendorException checks if the specified bidder is considered a vendor exception for a given purpose. If a
 // bidder is a vendor exception, the GDPR full enforcement algorithm will bypass the legal basis calculation assuming
 // the request is valid and there isn't a "deny all" publisher restriction
-func (t *TCF2) PurposeVendorException(purpose consentconstants.Purpose, bidder openrtb_ext.BidderName) (value bool) {
+// func (t *TCF2) PurposeVendorException(purpose consentconstants.Purpose, bidder openrtb_ext.BidderName) (value bool) {
+// 	if t.PurposeConfigs[purpose] == nil {
+// 		return false
+// 	}
+// 	if _, ok := t.PurposeConfigs[purpose].VendorExceptionMap[bidder]; ok {
+// 		return true
+// 	}
+// 	return false
+// }
+func (t *TCF2) PurposeVendorExceptions(purpose consentconstants.Purpose) (value map[openrtb_ext.BidderName]struct{}) {
 	if t.PurposeConfigs[purpose] == nil {
-		return false
+		return nil
 	}
-	if _, ok := t.PurposeConfigs[purpose].VendorExceptionMap[bidder]; ok {
-		return true
+	if t.PurposeConfigs[purpose].VendorExceptionMap == nil {
+		return make(map[openrtb_ext.BidderName]struct{}, 0)
 	}
-	return false
+	return t.PurposeConfigs[purpose].VendorExceptionMap
 }
 
 // FeatureOneEnforced checks if special feature one is enforced. If it is enforced, PBS will determine whether geo

@@ -78,14 +78,20 @@ type AccountGDPR struct {
 
 // BasicEnforcementVendor checks if the given bidder is considered a basic enforcement vendor which indicates whether
 // weak vendor enforcement applies to that bidder.
-func (a *AccountGDPR) BasicEnforcementVendor(bidder openrtb_ext.BidderName) (value, exists bool) {
-	if a.BasicEnforcementVendorsMap == nil {
-		return false, false
-	}
-	_, found := a.BasicEnforcementVendorsMap[string(bidder)]
+// func (a *AccountGDPR) BasicEnforcementVendor(bidder openrtb_ext.BidderName) (value, exists bool) {
+// 	if a.BasicEnforcementVendorsMap == nil {
+// 		return false, false
+// 	}
+// 	_, found := a.BasicEnforcementVendorsMap[string(bidder)]
 
-	return found, true
-}
+// 	return found, true
+// }
+// func (a *AccountGDPR) GetBasicEnforcementVendors() (value map[string]struct{}, exists bool) {
+// 	if a.BasicEnforcementVendorsMap == nil {
+// 		return nil, false
+// 	}
+// 	return a.BasicEnforcementVendorsMap, true
+// }
 
 // EnabledForIntegrationType indicates whether GDPR is turned on at the account level for the specified integration type
 // by using the integration type setting if defined or the general GDPR setting if defined; otherwise it returns nil.
@@ -144,16 +150,26 @@ func (a *AccountGDPR) PurposeEnforcingVendors(purpose consentconstants.Purpose) 
 }
 
 // PurposeVendorException checks if the given bidder is a vendor exception for a given purpose.
-func (a *AccountGDPR) PurposeVendorException(purpose consentconstants.Purpose, bidder openrtb_ext.BidderName) (value, exists bool) {
+// func (a *AccountGDPR) PurposeVendorException(purpose consentconstants.Purpose, bidder openrtb_ext.BidderName) (value, exists bool) {
+// 	if a.PurposeConfigs[purpose] == nil {
+// 		return false, false
+// 	}
+// 	if a.PurposeConfigs[purpose].VendorExceptionMap == nil {
+// 		return false, false
+// 	}
+// 	_, found := a.PurposeConfigs[purpose].VendorExceptionMap[bidder]
+
+// 	return found, true
+// }
+
+func (a *AccountGDPR) PurposeVendorExceptions(purpose consentconstants.Purpose) (value map[openrtb_ext.BidderName]struct{}, exists bool) {
 	if a.PurposeConfigs[purpose] == nil {
-		return false, false
+		return nil, false
 	}
 	if a.PurposeConfigs[purpose].VendorExceptionMap == nil {
-		return false, false
+		return nil, false
 	}
-	_, found := a.PurposeConfigs[purpose].VendorExceptionMap[bidder]
-
-	return found, true
+	return a.PurposeConfigs[purpose].VendorExceptionMap, true
 }
 
 // PurposeOneTreatmentEnabled gets the account level purpose one treatment enabled setting returning the value and

@@ -9,14 +9,16 @@ import (
 
 // TCF2ConfigReader is an interface to access TCF2 configurations
 type TCF2ConfigReader interface {
-	BasicEnforcementVendor(openrtb_ext.BidderName) bool
+	// BasicEnforcementVendors(openrtb_ext.BidderName) bool
+	BasicEnforcementVendors() map[string]struct{}
 	FeatureOneEnforced() bool
 	FeatureOneVendorException(openrtb_ext.BidderName) bool
 	IntegrationEnabled(config.IntegrationType) bool
 	IsEnabled() bool
 	PurposeEnforced(consentconstants.Purpose) bool
 	PurposeEnforcingVendors(consentconstants.Purpose) bool
-	PurposeVendorException(consentconstants.Purpose, openrtb_ext.BidderName) bool
+	// PurposeVendorException(consentconstants.Purpose, openrtb_ext.BidderName) bool
+	PurposeVendorExceptions(purpose consentconstants.Purpose) map[openrtb_ext.BidderName]struct{}
 	PurposeOneTreatmentEnabled() bool
 	PurposeOneTreatmentAccessAllowed() bool
 }
@@ -78,11 +80,19 @@ func (tc *tcf2Config) PurposeEnforcingVendors(purpose consentconstants.Purpose) 
 // looking at the account settings, and if not set there, defaulting to the host configuration. If a bidder is a vendor
 // exception, the GDPR full enforcement algorithm will bypass the legal basis calculation assuming the request is valid
 // and there isn't a "deny all" publisher restriction
-func (tc *tcf2Config) PurposeVendorException(purpose consentconstants.Purpose, bidder openrtb_ext.BidderName) bool {
-	if value, exists := tc.AccountConfig.PurposeVendorException(purpose, bidder); exists {
+// func (tc *tcf2Config) PurposeVendorException(purpose consentconstants.Purpose, bidder openrtb_ext.BidderName) bool {
+// 	if value, exists := tc.AccountConfig.PurposeVendorException(purpose, bidder); exists {
+// 		return value
+// 	}
+// 	value := tc.HostConfig.PurposeVendorException(purpose, bidder)
+// 	return value
+// }
+func (tc *tcf2Config) PurposeVendorExceptions(purpose consentconstants.Purpose) map[openrtb_ext.BidderName]struct{} {
+	if value, exists := tc.AccountConfig.PurposeVendorExceptions(purpose); exists {
 		return value
 	}
-	value := tc.HostConfig.PurposeVendorException(purpose, bidder)
+	
+	value := tc.HostConfig.PurposeVendorExceptions(purpose)
 	return value
 }
 
@@ -133,9 +143,15 @@ func (tc *tcf2Config) PurposeOneTreatmentAccessAllowed() bool {
 // consent to the purpose, not the vendor. The idea is that the publisher trusts this vendor to enforce the
 // appropriate rules on their own. This only comes into play when enforceVendors is true as it lists those vendors that
 // are exempt for vendor enforcement.
-func (tc *tcf2Config) BasicEnforcementVendor(bidder openrtb_ext.BidderName) bool {
-	if value, exists := tc.AccountConfig.BasicEnforcementVendor(bidder); exists {
-		return value
+// func (tc *tcf2Config) BasicEnforcementVendor(bidder openrtb_ext.BidderName) bool {
+// 	if value, exists := tc.AccountConfig.BasicEnforcementVendor(bidder); exists {
+// 		return value
+// 	}
+// 	return false
+// }
+func (tc *tcf2Config) BasicEnforcementVendors() map[string]struct{} {
+	if tc.AccountConfig.BasicEnforcementVendorsMap != nil {
+		return tc.AccountConfig.BasicEnforcementVendorsMap
 	}
-	return false
+	return make(map[string]struct{}, 0)
 }

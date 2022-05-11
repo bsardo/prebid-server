@@ -955,6 +955,7 @@ func TestTCF1Consent(t *testing.T) {
 }
 
 func TestAllowActivitiesVendorException(t *testing.T) {
+												 "CPWA3egPWA3egBFAAAENAwCAAEAAAAAAAAAAAQAAAAAEAAAAAA"
 	noPurposeOrVendorConsentAndPubRestrictsP2 := "CPF_61ePF_61eFxAAAENAiCAAAAAAAAAAAAAACEAAAACEAAgAgAA"
 	noPurposeOrVendorConsentAndPubRestrictsNone := "CPF_61ePF_61eFxAAAENAiCAAAAAAAAAAAAAACEAAAAA"
 
