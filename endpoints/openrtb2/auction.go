@@ -1641,6 +1641,8 @@ func validateOrFillChannel(reqWrapper *openrtb_ext.RequestWrapper, isAmp bool) e
 	if err != nil {
 		return err
 	}
+
+	
 	requestPrebid := requestExt.GetPrebid()
 
 	if requestPrebid == nil || requestPrebid.Channel == nil {
