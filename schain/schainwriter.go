@@ -1,8 +1,7 @@
 package schain
 
 import (
-	"encoding/json"
-
+	"github.com/goccy/go-json"
 	"github.com/prebid/openrtb/v19/openrtb2"
 	"github.com/prebid/prebid-server/openrtb_ext"
 )

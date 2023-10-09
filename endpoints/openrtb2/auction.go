@@ -3,7 +3,6 @@ package openrtb2
 import (
 	"compress/gzip"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -17,6 +16,7 @@ import (
 	"github.com/prebid/prebid-server/privacy"
 
 	"github.com/buger/jsonparser"
+	"github.com/goccy/go-json"
 	"github.com/gofrs/uuid"
 	"github.com/golang/glog"
 	"github.com/julienschmidt/httprouter"
@@ -53,6 +53,7 @@ import (
 	"github.com/prebid/prebid-server/usersync"
 	"github.com/prebid/prebid-server/util/httputil"
 	"github.com/prebid/prebid-server/util/iputil"
+	"github.com/prebid/prebid-server/util/jsonutil"
 	"github.com/prebid/prebid-server/util/uuidutil"
 	"github.com/prebid/prebid-server/version"
 )
@@ -440,11 +441,12 @@ func (deps *endpointDeps) parseRequest(httpRequest *http.Request, labels *metric
 	requestJson, rejectErr := hookExecutor.ExecuteEntrypointStage(httpRequest, requestJson)
 	if rejectErr != nil {
 		errs = []error{rejectErr}
-		if err = json.Unmarshal(requestJson, req.BidRequest); err != nil {
+		if err = jsonutil.UnmarshalValid(requestJson, req.BidRequest); err != nil {
 			glog.Errorf("Failed to unmarshal BidRequest during entrypoint rejection: %s", err)
 		}
 		return
 	}
+	//TODO: validate requestJson here or just validate it once after stored requests have been merged in?
 
 	timeout := parseTimeout(requestJson, time.Duration(storedRequestTimeoutMillis)*time.Millisecond)
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
@@ -488,7 +490,7 @@ func (deps *endpointDeps) parseRequest(httpRequest *http.Request, labels *metric
 	requestJson, rejectErr = hookExecutor.ExecuteRawAuctionStage(requestJson)
 	if rejectErr != nil {
 		errs = []error{rejectErr}
-		if err = json.Unmarshal(requestJson, req.BidRequest); err != nil {
+		if err = jsonutil.UnmarshalValid(requestJson, req.BidRequest); err != nil {
 			glog.Errorf("Failed to unmarshal BidRequest during raw auction stage rejection: %s", err)
 		}
 		return
@@ -517,7 +519,7 @@ func (deps *endpointDeps) parseRequest(httpRequest *http.Request, labels *metric
 		return nil, nil, nil, nil, nil, nil, errs
 	}
 
-	if err := json.Unmarshal(requestJson, req.BidRequest); err != nil {
+	if err := jsonutil.UnmarshalValid(requestJson, req.BidRequest); err != nil {
 		errs = []error{err}
 		return
 	}
@@ -1187,7 +1189,7 @@ func fillAndValidateNative(n *openrtb2.Native, impIndex int) error {
 		return fmt.Errorf("request.imp[%d].native missing required property \"request\"", impIndex)
 	}
 	var nativePayload nativeRequests.Request
-	if err := json.Unmarshal(json.RawMessage(n.Request), &nativePayload); err != nil {
+	if err := jsonutil.UnmarshalValid(json.RawMessage(n.Request), &nativePayload); err != nil {
 		return err
 	}
 
@@ -2076,7 +2078,7 @@ func getJsonSyntaxError(testJSON []byte) (bool, string) {
 	}
 	type jNode map[string]*JsonNode
 	docErrdoc := &jNode{}
-	docErr := json.Unmarshal(testJSON, docErrdoc)
+	docErr := jsonutil.UnmarshalValid(testJSON, docErrdoc)
 	if uerror, ok := docErr.(*json.SyntaxError); ok {
 		err := fmt.Sprintf("%s at offset %v", uerror.Error(), uerror.Offset)
 		return true, err

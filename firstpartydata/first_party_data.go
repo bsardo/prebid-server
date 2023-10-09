@@ -1,9 +1,9 @@
 package firstpartydata
 
 import (
-	"encoding/json"
 	"fmt"
 
+	"github.com/goccy/go-json"
 	"github.com/prebid/openrtb/v19/openrtb2"
 	jsonpatch "gopkg.in/evanphx/json-patch.v4"
 

@@ -1,10 +1,10 @@
 package adservertargeting
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 
+	"github.com/goccy/go-json"
 	"github.com/pkg/errors"
 	"github.com/prebid/openrtb/v19/openrtb2"
 	"github.com/prebid/prebid-server/openrtb_ext"
@@ -79,7 +79,10 @@ func buildBidExt(targetingData map[string]string,
 			Targeting: targetingDataTruncated,
 		},
 	}
+	fmt.Printf("bidExtTargetingData: %+v\n", bidExtTargetingData.Prebid.Targeting)
 	bidExtTargeting, err := json.Marshal(bidExtTargetingData)
+	fmt.Printf("bidExtTargeting: %d\n", len(bidExtTargeting))
+	fmt.Println(err)
 	if err != nil {
 		warnings = append(warnings, createWarning(err.Error()))
 		return nil

@@ -5,7 +5,6 @@ import (
 	"compress/gzip"
 	"context"
 	"crypto/tls"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -15,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/goccy/go-json"
 	"github.com/golang/glog"
 	"github.com/prebid/prebid-server/bidadjustment"
 	"github.com/prebid/prebid-server/config/util"
@@ -33,6 +33,7 @@ import (
 	"github.com/prebid/prebid-server/errortypes"
 	"github.com/prebid/prebid-server/metrics"
 	"github.com/prebid/prebid-server/openrtb_ext"
+	"github.com/prebid/prebid-server/util/jsonutil"
 	"golang.org/x/net/context/ctxhttp"
 )
 
@@ -406,7 +407,7 @@ func (bidder *bidderAdapter) requestBid(ctx context.Context, bidderRequest Bidde
 func addNativeTypes(bid *openrtb2.Bid, request *openrtb2.BidRequest) (*nativeResponse.Response, []error) {
 	var errs []error
 	var nativeMarkup *nativeResponse.Response
-	if err := json.Unmarshal(json.RawMessage(bid.AdM), &nativeMarkup); err != nil || len(nativeMarkup.Assets) == 0 {
+	if err := jsonutil.UnmarshalValid(json.RawMessage(bid.AdM), &nativeMarkup); err != nil || len(nativeMarkup.Assets) == 0 {
 		// Some bidders are returning non-IAB compliant native markup. In this case Prebid server will not be able to add types. E.g Facebook
 		return nil, errs
 	}
@@ -418,7 +419,7 @@ func addNativeTypes(bid *openrtb2.Bid, request *openrtb2.BidRequest) (*nativeRes
 	}
 
 	var nativePayload nativeRequests.Request
-	if err := json.Unmarshal(json.RawMessage((*nativeImp).Request), &nativePayload); err != nil {
+	if err := jsonutil.UnmarshalValid(json.RawMessage((*nativeImp).Request), &nativePayload); err != nil {
 		errs = append(errs, err)
 	}
 

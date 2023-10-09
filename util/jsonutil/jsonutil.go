@@ -2,8 +2,11 @@ package jsonutil
 
 import (
 	"bytes"
-	"encoding/json"
 	"io"
+
+	"github.com/goccy/go-json"
+
+	"github.com/prebid/prebid-server/errortypes"
 )
 
 var comma = []byte(",")[0]
@@ -109,4 +112,12 @@ func DropElement(extension []byte, elementNames ...string) ([]byte, error) {
 		extension = append(extension[:startIndex], extension[endIndex:]...)
 	}
 	return extension, nil
+}
+
+// UnmarshalValid 
+func UnmarshalValid(data []byte, v interface{}) error {
+	if !json.Valid(data) {
+		return &errortypes.InvalidJSON{Message: "Invalid JSON"}
+	}
+	return json.Unmarshal(data, v)
 }

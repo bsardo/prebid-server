@@ -2,12 +2,14 @@ package file_fetcher
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
 
 	"github.com/prebid/prebid-server/stored_requests"
+	"github.com/prebid/prebid-server/util/jsonutil"
+
+	"github.com/goccy/go-json"
 	jsonpatch "gopkg.in/evanphx/json-patch.v4"
 )
 
@@ -78,7 +80,7 @@ func (fetcher *eagerFetcher) FetchCategories(ctx context.Context, primaryAdServe
 
 			tmp := make(map[string]stored_requests.Category)
 
-			if err := json.Unmarshal(file, &tmp); err != nil {
+			if err := jsonutil.UnmarshalValid(file, &tmp); err != nil {
 				return "", fmt.Errorf("Unable to unmarshal categories for adserver: '%s', publisherId: '%s'", primaryAdServer, publisherId)
 			}
 			fetcher.Categories[fileName] = tmp

@@ -2,10 +2,10 @@ package stored_responses
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/buger/jsonparser"
+	"github.com/goccy/go-json"
 	"github.com/prebid/openrtb/v19/openrtb2"
 	"github.com/prebid/prebid-server/openrtb_ext"
 	"github.com/prebid/prebid-server/stored_requests"

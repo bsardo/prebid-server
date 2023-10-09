@@ -1,8 +1,7 @@
 package openrtb_ext
 
 import (
-	"encoding/json"
-
+	"github.com/goccy/go-json"
 	"github.com/prebid/openrtb/v19/openrtb2"
 )
 

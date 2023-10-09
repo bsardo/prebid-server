@@ -1,9 +1,8 @@
 package hookexecution
 
 import (
-	"encoding/json"
-
 	"github.com/buger/jsonparser"
+	"github.com/goccy/go-json"
 	"github.com/prebid/openrtb/v19/openrtb2"
 	"github.com/prebid/prebid-server/config"
 	jsonpatch "gopkg.in/evanphx/json-patch.v4"

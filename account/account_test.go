@@ -20,7 +20,8 @@ var mockAccountData = map[string]json.RawMessage{
 	"valid_acct":                json.RawMessage(`{"disabled":false}`),
 	"invalid_acct_ipv6_ipv4":    json.RawMessage(`{"disabled":false, "privacy": {"ipv6": {"anon_keep_bits": -32}, "ipv4": {"anon_keep_bits": -16}}}`),
 	"disabled_acct":             json.RawMessage(`{"disabled":true}`),
-	"malformed_acct":            json.RawMessage(`{"disabled":"invalid type"}`),
+	"malformed_acct_unmarshal":  json.RawMessage(`{"disabled":"invalid type"}`),
+	"malformed_acct_invalid":    json.RawMessage(`{"disabled":}`),
 	"gdpr_channel_enabled_acct": json.RawMessage(`{"disabled":false,"gdpr":{"channel_enabled":{"amp":true}}}`),
 	"ccpa_channel_enabled_acct": json.RawMessage(`{"disabled":false,"ccpa":{"channel_enabled":{"amp":true}}}`),
 }
@@ -78,10 +79,16 @@ func TestGetAccount(t *testing.T) {
 		{accountID: "disabled_acct", required: true, disabled: true, err: &errortypes.BlacklistedAcct{}},
 
 		// pubID given and matches a host account that has a malformed config
-		{accountID: "malformed_acct", required: false, disabled: false, err: &errortypes.MalformedAcct{}},
-		{accountID: "malformed_acct", required: true, disabled: false, err: &errortypes.MalformedAcct{}},
-		{accountID: "malformed_acct", required: false, disabled: true, err: &errortypes.MalformedAcct{}},
-		{accountID: "malformed_acct", required: true, disabled: true, err: &errortypes.MalformedAcct{}},
+		{accountID: "malformed_acct_invalid", required: false, disabled: false, err: &errortypes.MalformedAcct{}},
+		{accountID: "malformed_acct_invalid", required: true, disabled: false, err: &errortypes.MalformedAcct{}},
+		{accountID: "malformed_acct_invalid", required: false, disabled: true, err: &errortypes.MalformedAcct{}},
+		{accountID: "malformed_acct_invalid", required: true, disabled: true, err: &errortypes.MalformedAcct{}},
+
+		// pubID given and matches a host account that has a valid config that cannot be unmarshaled into the struct
+		{accountID: "malformed_acct_unmarshal", required: false, disabled: false, err: &errortypes.MalformedAcct{}},
+		{accountID: "malformed_acct_unmarshal", required: true, disabled: false, err: &errortypes.MalformedAcct{}},
+		{accountID: "malformed_acct_unmarshal", required: false, disabled: true, err: &errortypes.MalformedAcct{}},
+		{accountID: "malformed_acct_unmarshal", required: true, disabled: true, err: &errortypes.MalformedAcct{}},
 
 		// account not provided (does not exist)
 		{accountID: "", required: false, disabled: false, err: nil},

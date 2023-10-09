@@ -1,15 +1,15 @@
 package exchange
 
 import (
-	"encoding/json"
 	"time"
 
-	"github.com/prebid/prebid-server/exchange/entities"
+	"github.com/goccy/go-json"
 	jsonpatch "gopkg.in/evanphx/json-patch.v4"
-
+	
 	"github.com/prebid/prebid-server/analytics"
 	"github.com/prebid/prebid-server/config"
 	"github.com/prebid/prebid-server/endpoints/events"
+	"github.com/prebid/prebid-server/exchange/entities"
 	"github.com/prebid/prebid-server/openrtb_ext"
 )
 

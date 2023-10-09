@@ -3,7 +3,6 @@ package http
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"io"
 	httpCore "net/http"
 	"net/url"
@@ -12,9 +11,11 @@ import (
 	"golang.org/x/net/context/ctxhttp"
 
 	"github.com/buger/jsonparser"
-	"github.com/prebid/prebid-server/stored_requests/events"
-
+	"github.com/goccy/go-json"
 	"github.com/golang/glog"
+
+	"github.com/prebid/prebid-server/stored_requests/events"
+	"github.com/prebid/prebid-server/util/jsonutil"
 )
 
 // NewHTTPEvents makes an EventProducer which creates events by pinging an external HTTP API
@@ -184,7 +185,7 @@ func (e *HTTPEvents) parse(endpoint string, resp *httpCore.Response, err error) 
 	}
 
 	var respObj responseContract
-	if err := json.Unmarshal(respBytes, &respObj); err != nil {
+	if err := jsonutil.UnmarshalValid(respBytes, &respObj); err != nil {
 		glog.Errorf("Failed to unmarshal body of GET %s for Stored Requests: %v", endpoint, err)
 		return nil, false
 	}

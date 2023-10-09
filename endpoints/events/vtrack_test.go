@@ -159,6 +159,41 @@ func TestShouldRespondWithBadRequestWhenRequestBodyIsInvalid(t *testing.T) {
 	assert.Equal(t, 400, recorder.Result().StatusCode, "Expected 400 on request with invalid body")
 }
 
+func TestShouldRespondWithBadRequestWhenRequestBodyCannotBeUnmarshaled(t *testing.T) {
+	// mock pbs cache client
+	mockCacheClient := &vtrackMockCacheClient{}
+
+	// mock AccountsFetcher
+	mockAccountsFetcher := &mockAccountsFetcher{}
+
+	// config
+	cfg := &config.Configuration{
+		MaxRequestSize:  maxSize,
+		AccountDefaults: config.Account{},
+	}
+	cfg.MarshalAccountDefaults()
+
+	// prepare
+	reqData := `{"puts": "wrong type"}`
+
+	req := httptest.NewRequest("POST", "/vtrack?a=events_enabled", strings.NewReader(reqData))
+
+	recorder := httptest.NewRecorder()
+
+	e := vtrackEndpoint{
+		Cfg:         cfg,
+		BidderInfos: nil,
+		Cache:       mockCacheClient,
+		Accounts:    mockAccountsFetcher,
+	}
+
+	// execute
+	e.Handle(recorder, req, nil)
+
+	// validate
+	assert.Equal(t, 400, recorder.Result().StatusCode, "Expected 400 on request with invalid body")
+}
+
 func TestShouldRespondWithBadRequestWhenBidIdIsMissing(t *testing.T) {
 	// mock pbs cache client
 	mockCacheClient := &vtrackMockCacheClient{}

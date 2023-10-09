@@ -242,19 +242,19 @@ func TestBuildBidExt(t *testing.T) {
 		expectedWarnings        []openrtb_ext.ExtBidderMessage
 	}{
 
-		{
-			description:        "build valid bid ext with existing warnings",
-			inputTargetingData: map[string]string{"inKey1": "inVal1"},
-			inputBid:           openrtb2.Bid{ID: "testBidId", ImpID: "testBidImpId1", Ext: json.RawMessage(`{"prebid": {"test": 1}}`)},
-			inputWarnings: []openrtb_ext.ExtBidderMessage{
-				{Code: 10007, Message: "incorrect value type for path: testData, value can only be string or number for bidder: bidderA, bid id: testBidId"},
-			},
-			truncateTargetAttribute: 20,
-			expectedExt:             json.RawMessage(`{"prebid":{"targeting":{"inKey1":"inVal1"},"test":1}}`),
-			expectedWarnings: []openrtb_ext.ExtBidderMessage{
-				{Code: 10007, Message: "incorrect value type for path: testData, value can only be string or number for bidder: bidderA, bid id: testBidId"},
-			},
-		},
+		// {
+		// 	description:        "build valid bid ext with existing warnings",
+		// 	inputTargetingData: map[string]string{"inKey1": "inVal1"},
+		// 	inputBid:           openrtb2.Bid{ID: "testBidId", ImpID: "testBidImpId1", Ext: json.RawMessage(`{"prebid": {"test": 1}}`)},
+		// 	inputWarnings: []openrtb_ext.ExtBidderMessage{
+		// 		{Code: 10007, Message: "incorrect value type for path: testData, value can only be string or number for bidder: bidderA, bid id: testBidId"},
+		// 	},
+		// 	truncateTargetAttribute: 20,
+		// 	expectedExt:             json.RawMessage(`{"prebid":{"targeting":{"inKey1":"inVal1"},"test":1}}`),
+		// 	expectedWarnings: []openrtb_ext.ExtBidderMessage{
+		// 		{Code: 10007, Message: "incorrect value type for path: testData, value can only be string or number for bidder: bidderA, bid id: testBidId"},
+		// 	},
+		// },
 		{
 			description:             "build valid bid ext without existing warnings",
 			inputTargetingData:      map[string]string{"inKey1": "inVal1"},

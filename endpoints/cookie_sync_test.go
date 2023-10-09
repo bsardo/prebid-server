@@ -190,14 +190,14 @@ func TestCookieSyncHandle(t *testing.T) {
 				SyncersChosen:    []usersync.SyncerChoice{{Bidder: "a", Syncer: &syncer}},
 			},
 			expectedStatusCode: 400,
-			expectedBody:       `JSON parsing failed: invalid character 'm' looking for beginning of value` + "\n",
+			expectedBody:       `JSON parsing failed` + "\n",
 			setMetricsExpectations: func(m *metrics.MetricsEngineMock) {
 				m.On("RecordCookieSync", metrics.CookieSyncBadRequest).Once()
 			},
 			setAnalyticsExpectations: func(a *MockAnalytics) {
 				expected := analytics.CookieSyncObject{
 					Status:       400,
-					Errors:       []error{errors.New("JSON parsing failed: invalid character 'm' looking for beginning of value")},
+					Errors:       []error{errors.New("JSON parsing failed")},
 					BidderStatus: []*analytics.CookieSyncBidder{},
 				}
 				a.On("LogCookieSyncObject", &expected).Once()
@@ -805,7 +805,14 @@ func TestCookieSyncParseRequest(t *testing.T) {
 			givenBody:        strings.NewReader(`malformed`),
 			givenGDPRConfig:  config.GDPR{Enabled: true, DefaultValue: "0"},
 			givenCCPAEnabled: true,
-			expectedError:    "JSON parsing failed: invalid character 'm' looking for beginning of value",
+			expectedError:    "JSON parsing failed",
+		},
+		{
+			description:      "Invalid JSON",
+			givenBody:        strings.NewReader(`{"gdpr": "not a number"}`),
+			givenGDPRConfig:  config.GDPR{Enabled: true, DefaultValue: "0"},
+			givenCCPAEnabled: true,
+			expectedError:    "JSON parsing failed: json: cannot unmarshal number \" into Go struct field cookieSyncRequest.GDPR of type int",
 		},
 		{
 			description:      "Invalid Type Filter",

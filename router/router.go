@@ -3,7 +3,6 @@ package router
 import (
 	"context"
 	"crypto/tls"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -34,10 +33,12 @@ import (
 	"github.com/prebid/prebid-server/server/ssl"
 	storedRequestsConf "github.com/prebid/prebid-server/stored_requests/config"
 	"github.com/prebid/prebid-server/usersync"
+	"github.com/prebid/prebid-server/util/jsonutil"
 	"github.com/prebid/prebid-server/util/uuidutil"
 	"github.com/prebid/prebid-server/version"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/goccy/go-json"
 	"github.com/golang/glog"
 	"github.com/julienschmidt/httprouter"
 	_ "github.com/lib/pq"
@@ -358,7 +359,7 @@ func readDefaultRequest(defReqConfig config.DefReqConfig) (map[string]string, []
 			return aliases, []byte{}
 		}
 
-		if err := json.Unmarshal(defReqJSON, defReq); err != nil {
+		if err := jsonutil.UnmarshalValid(defReqJSON, defReq); err != nil {
 			// we might not have aliases defined, but will atleast show that the JSON file is parsable.
 			glog.Fatalf("error parsing alias json in file %s: %v", defReqConfig.FileSystem.FileName, err)
 			return aliases, []byte{}

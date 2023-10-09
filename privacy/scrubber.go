@@ -1,13 +1,13 @@
 package privacy
 
 import (
-	"encoding/json"
 	"net"
 
 	"github.com/prebid/prebid-server/config"
 	"github.com/prebid/prebid-server/util/iputil"
 	"github.com/prebid/prebid-server/util/ptrutil"
 
+	"github.com/goccy/go-json"
 	"github.com/prebid/openrtb/v19/openrtb2"
 )
 

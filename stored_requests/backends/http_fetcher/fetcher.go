@@ -3,7 +3,6 @@ package http_fetcher
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,8 +10,10 @@ import (
 	"strings"
 
 	"github.com/prebid/prebid-server/stored_requests"
+	"github.com/prebid/prebid-server/util/jsonutil"
 	jsonpatch "gopkg.in/evanphx/json-patch.v4"
 
+	"github.com/goccy/go-json"
 	"github.com/golang/glog"
 	"golang.org/x/net/context/ctxhttp"
 )
@@ -142,7 +143,7 @@ func (fetcher *HttpFetcher) FetchAccounts(ctx context.Context, accountIDs []stri
 		}
 	}
 	var responseData accountsResponseContract
-	if err = json.Unmarshal(respBytes, &responseData); err != nil {
+	if err = jsonutil.UnmarshalValid(respBytes, &responseData); err != nil {
 		return nil, []error{
 			fmt.Errorf(`Error fetching accounts %v via http: failed to parse response: %v`, accountIDs, err),
 		}
@@ -209,7 +210,7 @@ func (fetcher *HttpFetcher) FetchCategories(ctx context.Context, primaryAdServer
 	respBytes, err := io.ReadAll(httpResp.Body)
 	tmp := make(map[string]stored_requests.Category)
 
-	if err := json.Unmarshal(respBytes, &tmp); err != nil {
+	if err := jsonutil.UnmarshalValid(respBytes, &tmp); err != nil {
 		return "", fmt.Errorf("Unable to unmarshal categories for adserver: '%s', publisherId: '%s'", primaryAdServer, publisherId)
 	}
 	fetcher.Categories[dataName] = tmp
@@ -240,7 +241,7 @@ func unpackResponse(resp *http.Response) (requestData map[string]json.RawMessage
 
 	if resp.StatusCode == http.StatusOK {
 		var responseObj responseContract
-		if err := json.Unmarshal(respBytes, &responseObj); err != nil {
+		if err := jsonutil.UnmarshalValid(respBytes, &responseObj); err != nil {
 			errs = append(errs, err)
 			return
 		}

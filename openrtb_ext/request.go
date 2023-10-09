@@ -1,9 +1,9 @@
 package openrtb_ext
 
 import (
-	"encoding/json"
 	"fmt"
 
+	"github.com/goccy/go-json"
 	"github.com/prebid/openrtb/v19/openrtb2"
 	"github.com/prebid/prebid-server/util/maputil"
 	"github.com/prebid/prebid-server/util/ptrutil"

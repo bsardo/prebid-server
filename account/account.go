@@ -2,8 +2,9 @@ package account
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+
+	"github.com/goccy/go-json"
 	"github.com/prebid/go-gdpr/consentconstants"
 	"github.com/prebid/prebid-server/config"
 	"github.com/prebid/prebid-server/errortypes"
@@ -11,6 +12,7 @@ import (
 	"github.com/prebid/prebid-server/openrtb_ext"
 	"github.com/prebid/prebid-server/stored_requests"
 	"github.com/prebid/prebid-server/util/iputil"
+	"github.com/prebid/prebid-server/util/jsonutil"
 )
 
 // GetAccount looks up the config.Account object referenced by the given accountID, with access rules applied
@@ -47,12 +49,21 @@ func GetAccount(ctx context.Context, cfg *config.Configuration, fetcher stored_r
 	} else {
 		// accountID resolved to a valid account, merge with AccountDefaults for a complete config
 		account = &config.Account{}
-		err := json.Unmarshal(accountJSON, account)
-		if _, ok := err.(*json.UnmarshalTypeError); ok {
+
+		err := jsonutil.UnmarshalValid(accountJSON, account)
+		// valid := json.Valid(accountJSON)
+		// err := json.Unmarshal(accountJSON, account)
+		_, invalidJSONErr := err.(*errortypes.InvalidJSON)
+		_, unmarshalErr := err.(*json.UnmarshalTypeError)
+		_, syntaxErr := err.(*json.SyntaxError)
+
+		// if !valid || unmarshalErr || syntaxErr {
+		if invalidJSONErr || unmarshalErr || syntaxErr {
 			return nil, []error{&errortypes.MalformedAcct{
 				Message: fmt.Sprintf("The prebid-server account config for account id \"%s\" is malformed. Please reach out to the prebid server host.", accountID),
 			}}
 		}
+
 		usingGDPRChannelEnabled := useGDPRChannelEnabled(account)
 		usingCCPAChannelEnabled := useCCPAChannelEnabled(account)
 

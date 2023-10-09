@@ -220,3 +220,21 @@ func (err *Warning) Code() int {
 func (err *Warning) Severity() Severity {
 	return SeverityWarning
 }
+
+// InvalidJSON should be used when the retrieved account config cannot be unmarshaled
+// These errors will be written to http.ResponseWriter before canceling execution
+type InvalidJSON struct {
+	Message string
+}
+
+func (err *InvalidJSON) Error() string {
+	return err.Message
+}
+
+func (err *InvalidJSON) Code() int {
+	return InvalidJSONErrorCode
+}
+
+func (err *InvalidJSON) Severity() Severity {
+	return SeverityFatal
+}

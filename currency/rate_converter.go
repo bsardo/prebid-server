@@ -1,7 +1,6 @@
 package currency
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/prebid/prebid-server/errortypes"
+	"github.com/prebid/prebid-server/util/jsonutil"
 	"github.com/prebid/prebid-server/util/timeutil"
 )
 
@@ -66,9 +66,14 @@ func (rc *RateConverter) fetch() (*Rates, error) {
 	}
 
 	updatedRates := &Rates{}
-	err = json.Unmarshal(bytesJSON, updatedRates)
+	err = jsonutil.UnmarshalValid(bytesJSON, updatedRates)
+	// if !json.Valid(bytesJSON) {
+	// 	return nil, errors.New("The currency rates response contains invalid JSON")
+	// }
+	// err = json.Unmarshal(bytesJSON, updatedRates)
 	if err != nil {
-		return nil, err
+		message := fmt.Sprintf("The currency rates request failed: %s\n", err.Error())
+		return nil, &errortypes.BadServerResponse{Message: message}
 	}
 
 	return updatedRates, err

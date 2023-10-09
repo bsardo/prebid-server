@@ -3,7 +3,6 @@ package openrtb2
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -14,6 +13,7 @@ import (
 	"github.com/prebid/prebid-server/privacy"
 
 	"github.com/buger/jsonparser"
+	"github.com/goccy/go-json"
 	"github.com/golang/glog"
 	"github.com/julienschmidt/httprouter"
 	"github.com/prebid/openrtb/v19/openrtb2"
@@ -38,6 +38,7 @@ import (
 	"github.com/prebid/prebid-server/stored_responses"
 	"github.com/prebid/prebid-server/usersync"
 	"github.com/prebid/prebid-server/util/iputil"
+	"github.com/prebid/prebid-server/util/jsonutil"
 	"github.com/prebid/prebid-server/version"
 )
 
@@ -523,7 +524,7 @@ func (deps *endpointDeps) loadRequestJSONForAmp(httpRequest *http.Request) (req 
 
 	// The fetched config becomes the entire OpenRTB request
 	requestJSON := storedRequests[ampParams.StoredRequestID]
-	if err := json.Unmarshal(requestJSON, req); err != nil {
+	if err := jsonutil.UnmarshalValid(requestJSON, req); err != nil {
 		errs = []error{err}
 		return
 	}

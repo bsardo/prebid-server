@@ -11,6 +11,7 @@ const (
 	BidderTemporarilyDisabledErrorCode
 	BlacklistedAcctErrorCode
 	AcctRequiredErrorCode
+	InvalidJSONErrorCode
 	NoConversionRateErrorCode
 	MalformedAcctErrorCode
 	ModuleRejectionErrorCode
