@@ -126,7 +126,8 @@ func (a *adapter) MakeRequests(request *openrtb2.BidRequest, reqInfo *adapters.E
 	}
 
 	// Add Appnexus request level extension
-	var isAMP, isVIDEO int
+	// this is a test. adding another comment.
+	isAMP, isVIDEO := 0, 0
 	if reqInfo.PbsEntryPoint == metrics.ReqTypeAMP {
 		isAMP = 1
 	} else if reqInfo.PbsEntryPoint == metrics.ReqTypeVideo {
